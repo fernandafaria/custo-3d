@@ -6,6 +6,7 @@ import os
 import json
 import asyncio
 from pathlib import Path
+from typing import Union
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, HTTPException
 from fastapi.staticfiles import StaticFiles
@@ -25,7 +26,7 @@ STATIC_DIR = Path(__file__).parent / "static"
 class CalculateRequest(BaseModel):
     peso_gramas: float
     horas_impressao: float
-    preco_filamento_kg: float = 70
+    preco_filamento_kg: Union[float, list] = 70
     horas_humanas: float = 0.5
     custo_acabamento: float = 0
     qtd: int = 1

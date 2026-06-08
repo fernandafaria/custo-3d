@@ -2,6 +2,7 @@
 calculadora.py — lógica pura de precificação de impressão 3D.
 Sem dependências externas, testável isoladamente.
 """
+from typing import Union
 
 FILAMENTOS = {
     "pla": {"nome": "PLA Standard", "preco_kg": 90},
@@ -50,19 +51,19 @@ def custo_mao_de_obra(horas_humanas: float, valor_hora: float) -> float:
 
 def calcular(peso_gramas: float,
              horas_impressao: float,
-             preco_filamento_kg: float = 70,
+             preco_filamento_kg: Union[float, list] = 70,
              horas_humanas: float = 0.5,
              custo_acabamento: float = 0,
              qtd: int = 1,
              cores: int = 1,
-             config: dict | None = None) -> dict:
+             config: Union[dict, None] = None) -> dict:
     """
     Calcula custo total e preço de venda de peça(s) impressa(s) em 3D.
 
     Parâmetros:
         peso_gramas: peso do modelo (por peça) em gramas
         horas_impressao: tempo de impressão (por peça) em horas
-        preco_filamento_kg: preço do filamento por kg
+        preco_filamento_kg: preço do filamento por kg (float) ou lista de preços por cor
         horas_humanas: horas de trabalho humano (setup + pós, por lote)
         custo_acabamento: custo extra de acabamento (por peça)
         qtd: quantidade de peças no lote
@@ -71,6 +72,12 @@ def calcular(peso_gramas: float,
     Retorna dict com composição detalhada de custos e preço sugerido.
     """
     c = {**CONFIG_PADRAO, **(config or {})}
+
+    # Preço do filamento: se for lista, usa média; senão usa o valor único
+    if isinstance(preco_filamento_kg, list):
+        preco_medio = sum(preco_filamento_kg) / len(preco_filamento_kg)
+    else:
+        preco_medio = preco_filamento_kg
 
     trocas = max(0, cores - 1)  # número de trocas de cor
 
@@ -86,7 +93,7 @@ def calcular(peso_gramas: float,
     horas_humanas_extra = trocas * (c["setup_cor_min"] / 60)
     horas_humanas_total = horas_humanas + horas_humanas_extra
 
-    fil = custo_filamento(peso_total_por_peca, preco_filamento_kg, qtd)
+    fil = custo_filamento(peso_total_por_peca, preco_medio, qtd)
     ener = custo_energia(c["potencia_watts"], horas_total_por_peca, c["tarifa_kwh"], qtd)
     maq = custo_maquina(horas_total_por_peca, c["valor_impressora"], c["vida_util_horas"], c["manutencao_hora"], qtd)
     mo = custo_mao_de_obra(horas_humanas_total, c["valor_hora_mo"])
@@ -120,6 +127,7 @@ def calcular(peso_gramas: float,
             "horas_impressao": horas_impressao,
             "horas_impressao_com_purga": round(horas_total_por_peca, 2),
             "preco_filamento_kg": preco_filamento_kg,
+            "preco_medio_kg": round(preco_medio, 2),
             "filamento_extra_purga_g": round(filamento_extra_por_peca, 2),
             "peso_total_com_purga_g": round(peso_total_por_peca, 2),
             "horas_humanas": horas_humanas,

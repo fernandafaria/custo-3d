@@ -303,9 +303,9 @@
         </div>
       </div>
       <div class="form-row">
-        <div class="form-group">
-          <label for="material">Material</label>
-          <select id="material">
+        <div id="materiais-container" class="form-group" style="grid-column: 1 / -1;">
+          <label for="material-1">Material</label>
+          <select id="material-1" class="material-select">
             <option value="70">PETG Low Cost — R$70/kg</option>
             <option value="90">PLA Standard — R$90/kg</option>
             <option value="125">PLA Premium — R$125/kg</option>
@@ -314,13 +314,15 @@
             <option value="140">PLA Silk — R$140/kg</option>
           </select>
         </div>
+      </div>
+      <div class="form-row">
         <div class="form-group">
           <label for="qtd">Quantidade de peças</label>
           <input type="number" id="qtd" value="1" min="1">
         </div>
         <div class="form-group">
           <label for="cores">Cores diferentes</label>
-          <input type="number" id="cores" value="1" min="1" max="16">
+          <input type="number" id="cores" value="1" min="1" max="16" onchange="atualizarMateriais()">
         </div>
       </div>
       <div class="form-row">
@@ -383,15 +385,64 @@ function switchTab(name) {
   document.getElementById(`panel-${name}`).classList.add('active');
 }
 
+// Dynamic material selects per color
+const MATERIAL_OPTIONS = [
+  { value: "70", label: "PETG Low Cost — R$70/kg" },
+  { value: "90", label: "PLA Standard — R$90/kg" },
+  { value: "125", label: "PLA Premium — R$125/kg" },
+  { value: "110", label: "PETG Standard — R$110/kg" },
+  { value: "90", label: "ABS — R$90/kg" },
+  { value: "140", label: "PLA Silk — R$140/kg" },
+];
+
+function atualizarMateriais() {
+  const cores = parseInt(document.getElementById('cores').value) || 1;
+  const container = document.getElementById('materiais-container');
+  const currentValues = [];
+  document.querySelectorAll('.material-select').forEach(s => currentValues.push(s.value));
+
+  // Reset styles
+  container.style.display = '';
+  container.style.gridTemplateColumns = '';
+  container.style.gap = '';
+
+  if (cores === 1) {
+    container.innerHTML = `
+      <label for="material-1">Material</label>
+      <select id="material-1" class="material-select">
+        ${MATERIAL_OPTIONS.map(o => `<option value="${o.value}" ${o.value === (currentValues[0]||'70') ? 'selected' : ''}>${o.label}</option>`).join('')}
+      </select>`;
+  } else {
+    container.innerHTML = '<label style="display:block;margin-bottom:6px;">Preço do filamento por cor</label>';
+    container.style.display = 'grid';
+    container.style.gridTemplateColumns = '1fr 1fr';
+    container.style.gap = '8px';
+    for (let i = 1; i <= cores; i++) {
+      const prevVal = currentValues[i-1] || currentValues[0] || '70';
+      container.innerHTML += `
+        <div class="form-group" style="margin-bottom:0;">
+          <label for="material-${i}" style="font-size:0.75rem;">Cor ${i}</label>
+          <select id="material-${i}" class="material-select">
+            ${MATERIAL_OPTIONS.map(o => `<option value="${o.value}" ${o.value === prevVal ? 'selected' : ''}>${o.label.split('—')[0].trim()}</option>`).join('')}
+          </select>
+        </div>`;
+    }
+  }
+}
+
 // Calculator
 async function calculate() {
   const peso = parseFloat(document.getElementById('peso').value);
   const horas = parseFloat(document.getElementById('horas').value);
-  const preco_kg = parseFloat(document.getElementById('material').value);
-  const mo = parseFloat(document.getElementById('mo').value);
-  const acabamento = parseFloat(document.getElementById('acabamento').value);
   const qtd = parseInt(document.getElementById('qtd').value);
   const cores = parseInt(document.getElementById('cores').value);
+
+  // Coletar preços de todos os selects de material
+  const precos = [];
+  document.querySelectorAll('.material-select').forEach(s => precos.push(parseFloat(s.value)));
+
+  const mo = parseFloat(document.getElementById('mo').value);
+  const acabamento = parseFloat(document.getElementById('acabamento').value);
 
   const resp = await fetch('/api/calculate', {
     method: 'POST',
@@ -399,7 +450,7 @@ async function calculate() {
     body: JSON.stringify({
       peso_gramas: peso,
       horas_impressao: horas,
-      preco_filamento_kg: preco_kg,
+      preco_filamento_kg: cores === 1 ? precos[0] : precos,
       horas_humanas: mo,
       custo_acabamento: acabamento,
       qtd: qtd,
@@ -413,9 +464,18 @@ async function calculate() {
 
   let extraInfo = '';
   if (p.cores > 1) {
+    const precoMedio = Array.isArray(p.preco_filamento_kg)
+      ? (p.preco_filamento_kg.reduce((a,b) => a+b, 0) / p.preco_filamento_kg.length).toFixed(0)
+      : p.preco_medio_kg;
+    const precosStr = Array.isArray(p.preco_filamento_kg)
+      ? p.preco_filamento_kg.map((v,i) => `Cor ${i+1}: R$${v}/kg`).join(', ')
+      : '';
     extraInfo = `
     <div class="result-row" style="color:var(--yellow);font-size:0.82rem;margin-bottom:4px;">
-      <span class="label">⚡ ${p.cores} cores — inclui purga (${p.filamento_extra_purga_g}g / +${p.horas_impressao_com_purga - p.horas_impressao}h por peça)</span>
+      <span class="label">⚡ ${p.cores} cores — purga: ${p.filamento_extra_purga_g}g / +${(p.horas_impressao_com_purga - p.horas_impressao).toFixed(2)}h por peça</span>
+    </div>
+    <div class="result-row" style="color:var(--muted);font-size:0.8rem;margin-bottom:6px;">
+      <span class="label">Preço médio: R$${precoMedio}/kg${precosStr ? ' (' + precosStr + ')' : ''}</span>
     </div>`;
   }
 

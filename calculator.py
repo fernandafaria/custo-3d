@@ -14,17 +14,18 @@ FILAMENTOS = {
 }
 
 CONFIG_PADRAO = {
-    "tarifa_kwh": 0.90,        # R$/kWh — SP
-    "potencia_watts": 140,     # consumo médio real
-    "valor_impressora": 5000,  # R$
-    "vida_util_horas": 6000,   # horas
-    "manutencao_hora": 0.25,   # R$/hora
-    "valor_hora_mo": 40,       # R$/hora
-    "margem_pct": 50,          # %
-    "buffer_falha_pct": 10,    # %
-    "purga_tempo_h": 0.033,    # 2 min por troca de cor
-    "purga_filamento_g": 3,    # ~3g de filamento por troca
-    "setup_cor_min": 5,        # 5 min extra de M.O. por cor adicional
+    "tarifa_kwh": 0.90,              # R$/kWh — SP
+    "potencia_watts": 140,           # consumo médio real
+    "valor_impressora": 5000,        # R$
+    "vida_util_horas": 6000,         # horas
+    "manutencao_hora": 0.25,         # R$/hora
+    "custo_oportunidade_hora": 3.75, # R$/hora — máquina ocupada deixa de faturar
+    "valor_hora_mo": 40,             # R$/hora
+    "margem_pct": 50,                # %
+    "buffer_falha_pct": 10,          # %
+    "purga_tempo_h": 0.033,          # 2 min por troca de cor
+    "purga_filamento_g": 3,          # ~3g de filamento por troca
+    "setup_cor_min": 5,              # 5 min extra de M.O. por cor adicional
 }
 
 
@@ -38,10 +39,20 @@ def custo_energia(potencia_watts: float, horas: float, tarifa_kwh: float, qtd: i
     return (potencia_watts / 1000) * horas * tarifa_kwh * qtd
 
 
-def custo_maquina(horas: float, valor_impressora: float, vida_util: float, manutencao_hora: float, qtd: int = 1) -> float:
-    """Custo de depreciação + manutenção para o lote."""
+def custo_maquina(horas: float, valor_impressora: float, vida_util: float, manutencao_hora: float, oportunidade_hora: float, qtd: int = 1) -> dict:
+    """Custo de máquina: depreciação + manutenção + custo de oportunidade."""
     depreciacao_hora = valor_impressora / vida_util
-    return (depreciacao_hora + manutencao_hora) * horas * qtd
+    dep = depreciacao_hora * horas * qtd
+    man = manutencao_hora * horas * qtd
+    op = oportunidade_hora * horas * qtd
+    total = dep + man + op
+    return {
+        "depreciacao": round(dep, 2),
+        "manutencao": round(man, 2),
+        "oportunidade": round(op, 2),
+        "total": round(total, 2),
+        "custo_por_hora": round(depreciacao_hora + manutencao_hora + oportunidade_hora, 2),
+    }
 
 
 def custo_mao_de_obra(horas_humanas: float, valor_hora: float) -> float:
@@ -95,11 +106,11 @@ def calcular(peso_gramas: float,
 
     fil = custo_filamento(peso_total_por_peca, preco_medio, qtd)
     ener = custo_energia(c["potencia_watts"], horas_total_por_peca, c["tarifa_kwh"], qtd)
-    maq = custo_maquina(horas_total_por_peca, c["valor_impressora"], c["vida_util_horas"], c["manutencao_hora"], qtd)
+    maq = custo_maquina(horas_total_por_peca, c["valor_impressora"], c["vida_util_horas"], c["manutencao_hora"], c["custo_oportunidade_hora"], qtd)
     mo = custo_mao_de_obra(horas_humanas_total, c["valor_hora_mo"])
     acab = custo_acabamento * qtd
 
-    subtotal = fil + ener + maq + mo + acab
+    subtotal = fil + ener + maq["total"] + mo + acab
     buffer = subtotal * (c["buffer_falha_pct"] / 100)
     custo_total_lote = subtotal + buffer
     custo_unitario = custo_total_lote / qtd
@@ -112,7 +123,11 @@ def calcular(peso_gramas: float,
         "composicao": {
             "filamento": round(fil, 2),
             "energia": round(ener, 2),
-            "maquina": round(maq, 2),
+            "maquina": maq["total"],
+            "maquina_depreciacao": maq["depreciacao"],
+            "maquina_manutencao": maq["manutencao"],
+            "maquina_oportunidade": maq["oportunidade"],
+            "maquina_custo_por_hora": maq["custo_por_hora"],
             "mao_de_obra": round(mo, 2),
             "acabamento": round(acab, 2),
             "buffer_falha": round(buffer, 2),

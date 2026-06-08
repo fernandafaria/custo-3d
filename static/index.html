@@ -484,14 +484,18 @@ async function calculate() {
   document.getElementById('composicao').innerHTML = extraInfo + `
     <div class="result-row"><span class="label">Filamento</span><span class="value">R$ ${c.filamento.toFixed(2)}</span></div>
     <div class="result-row"><span class="label">Energia</span><span class="value">R$ ${c.energia.toFixed(2)}</span></div>
-    <div class="result-row"><span class="label">Máquina (deprec+manut)</span><span class="value">R$ ${c.maquina.toFixed(2)}</span></div>
+    <div class="result-row"><span class="label">Máquina (R$${c.maquina_custo_por_hora.toFixed(2)}/h × ${p.horas_impressao_com_purga}h × ${qtd} peças)</span><span class="value">R$ ${c.maquina.toFixed(2)}</span></div>
+    <div class="result-row" style="color:var(--muted);font-size:0.75rem;padding-left:12px;">
+      <span class="label">├ Depreciação: R$${c.maquina_depreciacao.toFixed(2)}</span></div>
+    <div class="result-row" style="color:var(--muted);font-size:0.75rem;padding-left:12px;">
+      <span class="label">├ Manutenção: R$${c.maquina_manutencao.toFixed(2)}</span></div>
+    <div class="result-row" style="color:var(--yellow);font-size:0.75rem;padding-left:12px;">
+      <span class="label">└ Custo oportunidade: R$${c.maquina_oportunidade.toFixed(2)}</span></div>
     <div class="result-row"><span class="label">Mão de obra</span><span class="value">R$ ${c.mao_de_obra.toFixed(2)}</span></div>
     <div class="result-row"><span class="label">Acabamento</span><span class="value">R$ ${c.acabamento.toFixed(2)}</span></div>
     <div class="result-row"><span class="label">Buffer de falha (10%)</span><span class="value">R$ ${c.buffer_falha.toFixed(2)}</span></div>
     <div class="result-row" style="border-top:1px solid var(--accent);margin-top:4px;padding-top:8px;font-weight:700;">
       <span class="label">Custo Total (lote) — ${p.horas_impressao_com_purga}h de impressão</span><span class="value">R$ ${data.custo_total_lote.toFixed(2)}</span></div>
-    <div class="result-row" style="color:var(--muted);font-size:0.78rem;">
-      <span class="label">Custo máquina: R$1,25/h × ${p.horas_impressao_com_purga}h × ${qtd} peça(s)</span><span class="value">R$ ${c.maquina.toFixed(2)}</span></div>
   `;
 
   document.getElementById('preco').textContent = `R$ ${data.preco_sugerido.toFixed(2)}`;

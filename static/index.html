@@ -295,17 +295,17 @@
       <div class="form-row">
         <div class="form-group">
           <label for="peso">Peso (gramas)</label>
-          <input type="number" id="peso" value="150" min="1" step="0.1">
+          <input type="number" id="peso" value="150" min="1" step="0.1" oninput="calculate()">
         </div>
         <div class="form-group">
           <label for="horas">Tempo de impressão (h)</label>
-          <input type="number" id="horas" value="6" min="0.1" step="0.1">
+          <input type="number" id="horas" value="6" min="0.1" step="0.1" oninput="calculate()">
         </div>
       </div>
       <div class="form-row">
         <div id="materiais-container" class="form-group" style="grid-column: 1 / -1;">
           <label for="material-1">Material</label>
-          <select id="material-1" class="material-select">
+          <select id="material-1" class="material-select" onchange="calculate()">
             <option value="70">PETG Low Cost — R$70/kg</option>
             <option value="90">PLA Standard — R$90/kg</option>
             <option value="125">PLA Premium — R$125/kg</option>
@@ -318,7 +318,7 @@
       <div class="form-row">
         <div class="form-group">
           <label for="qtd">Quantidade de peças</label>
-          <input type="number" id="qtd" value="1" min="1">
+          <input type="number" id="qtd" value="1" min="1" oninput="calculate()">
         </div>
         <div class="form-group">
           <label for="cores">Cores diferentes</label>
@@ -328,14 +328,15 @@
       <div class="form-row">
         <div class="form-group">
           <label for="mo">Mão de obra (horas)</label>
-          <input type="number" id="mo" value="0.5" min="0" step="0.25">
+          <input type="number" id="mo" value="0.5" min="0" step="0.25" oninput="calculate()">
         </div>
         <div class="form-group">
           <label for="acabamento">Acabamento extra (R$)</label>
-          <input type="number" id="acabamento" value="0" min="0" step="1">
+          <input type="number" id="acabamento" value="0" min="0" step="1" oninput="calculate()">
         </div>
       </div>
       <button class="btn btn-primary" onclick="calculate()">Calcular Preço</button>
+      <p style="color:var(--muted);font-size:0.75rem;text-align:center;margin-top:8px;">Ou edite qualquer campo — o cálculo é automático</p>
     </div>
 
     <div id="results" class="hidden">
@@ -422,12 +423,13 @@ function atualizarMateriais() {
       container.innerHTML += `
         <div class="form-group" style="margin-bottom:0;">
           <label for="material-${i}" style="font-size:0.75rem;">Cor ${i}</label>
-          <select id="material-${i}" class="material-select">
+          <select id="material-${i}" class="material-select" onchange="calculate()">
             ${MATERIAL_OPTIONS.map(o => `<option value="${o.value}" ${o.value === prevVal ? 'selected' : ''}>${o.label.split('—')[0].trim()}</option>`).join('')}
           </select>
         </div>`;
     }
   }
+  calculate();
 }
 
 // Calculator
@@ -487,7 +489,9 @@ async function calculate() {
     <div class="result-row"><span class="label">Acabamento</span><span class="value">R$ ${c.acabamento.toFixed(2)}</span></div>
     <div class="result-row"><span class="label">Buffer de falha (10%)</span><span class="value">R$ ${c.buffer_falha.toFixed(2)}</span></div>
     <div class="result-row" style="border-top:1px solid var(--accent);margin-top:4px;padding-top:8px;font-weight:700;">
-      <span class="label">Custo Total (lote)</span><span class="value">R$ ${data.custo_total_lote.toFixed(2)}</span></div>
+      <span class="label">Custo Total (lote) — ${p.horas_impressao_com_purga}h de impressão</span><span class="value">R$ ${data.custo_total_lote.toFixed(2)}</span></div>
+    <div class="result-row" style="color:var(--muted);font-size:0.78rem;">
+      <span class="label">Custo máquina: R$1,25/h × ${p.horas_impressao_com_purga}h × ${qtd} peça(s)</span><span class="value">R$ ${c.maquina.toFixed(2)}</span></div>
   `;
 
   document.getElementById('preco').textContent = `R$ ${data.preco_sugerido.toFixed(2)}`;

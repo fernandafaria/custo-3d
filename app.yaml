@@ -16,8 +16,3 @@ services:
       period_seconds: 30
     routes:
       - path: /
-    envs:
-      - key: DEEPSEEK_API_KEY
-        scope: RUN_TIME
-        type: SECRET
-        value: PLACEHOLDER

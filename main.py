@@ -29,6 +29,7 @@ class CalculateRequest(BaseModel):
     horas_humanas: float = 0.5
     custo_acabamento: float = 0
     qtd: int = 1
+    cores: int = 1
     margem_pct: int | None = None
     tarifa_kwh: float | None = None
     potencia_watts: float | None = None
@@ -73,6 +74,7 @@ async def api_calculate(req: CalculateRequest):
         horas_humanas=req.horas_humanas,
         custo_acabamento=req.custo_acabamento,
         qtd=req.qtd,
+        cores=req.cores,
         config=config if config else None,
     )
     return result
@@ -185,6 +187,7 @@ def fallback_chat(mensagem: str) -> dict:
     peso = None
     horas = None
     qtd = 1
+    cores = 1
     preco_kg = 70  # default PETG LC
     horas_humanas = 0.5
 
@@ -202,6 +205,11 @@ def fallback_chat(mensagem: str) -> dict:
     m = re.search(r"(\d+)\s*(unidades|peças|un|pecas)", msg)
     if m:
         qtd = int(m.group(1))
+
+    # Cores
+    m = re.search(r"(\d+)\s*(cores?|color)", msg)
+    if m:
+        cores = int(m.group(1))
 
     # Material
     for key, info in FILAMENTOS.items():
@@ -226,7 +234,8 @@ def fallback_chat(mensagem: str) -> dict:
                 "• Peso da peça (ex: 150g)\n"
                 "• Tempo de impressão (ex: 6 horas)\n"
                 "• Material (opcional — ex: PETG, PLA)\n"
-                "• Quantidade (opcional — ex: 10 peças)"
+                "• Quantidade (opcional — ex: 10 peças)\n"
+                "• Cores (opcional — ex: 3 cores)"
             ),
             "modo": "fallback",
         }
@@ -237,9 +246,11 @@ def fallback_chat(mensagem: str) -> dict:
         preco_filamento_kg=preco_kg,
         horas_humanas=horas_humanas,
         qtd=qtd,
+        cores=cores,
     )
 
     c = result["composicao"]
+    p = result["parametros"]
     resposta = (
         f"📊 **Cálculo para {peso}g, {horas}h, {qtd} peça(s)**\n\n"
         f"| Componente | Valor |\n"

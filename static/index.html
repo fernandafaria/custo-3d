@@ -315,8 +315,12 @@
           </select>
         </div>
         <div class="form-group">
-          <label for="qtd">Quantidade</label>
+          <label for="qtd">Quantidade de peças</label>
           <input type="number" id="qtd" value="1" min="1">
+        </div>
+        <div class="form-group">
+          <label for="cores">Cores diferentes</label>
+          <input type="number" id="cores" value="1" min="1" max="16">
         </div>
       </div>
       <div class="form-row">
@@ -355,15 +359,15 @@
       </p>
       <div class="chips">
         <span class="chip" onclick="sendChip(this.textContent)">150g PETG 6h</span>
-        <span class="chip" onclick="sendChip(this.textContent)">50g PLA 2h 20 unidades</span>
-        <span class="chip" onclick="sendChip(this.textContent)">300g ABS 12h com pintura</span>
+        <span class="chip" onclick="sendChip(this.textContent)">50g PLA 2h 20 peças</span>
+        <span class="chip" onclick="sendChip(this.textContent)">200g PLA 8h 3 cores</span>
         <span class="chip" onclick="sendChip(this.textContent)">Qual material mais barato?</span>
       </div>
       <div class="chat-messages" id="chat-messages">
         <div class="chat-msg bot">Olá! Sou o agente de precificação 3D. Me pergunte sobre custos de impressão, materiais, margens — ou me dê os dados da sua peça que eu calculo na hora.</div>
       </div>
       <div class="chat-input-row">
-        <input type="text" id="chat-input" placeholder="Ex: 200g em PLA, 8h, 5 peças..." onkeydown="if(event.key==='Enter')sendMessage()">
+        <input type="text" id="chat-input" placeholder="Ex: 200g em PLA, 8h, 5 peças, 3 cores..." onkeydown="if(event.key==='Enter')sendMessage()">
         <button class="btn btn-primary" onclick="sendMessage()" style="width:auto;padding:10px 18px;">Enviar</button>
       </div>
     </div>
@@ -387,6 +391,7 @@ async function calculate() {
   const mo = parseFloat(document.getElementById('mo').value);
   const acabamento = parseFloat(document.getElementById('acabamento').value);
   const qtd = parseInt(document.getElementById('qtd').value);
+  const cores = parseInt(document.getElementById('cores').value);
 
   const resp = await fetch('/api/calculate', {
     method: 'POST',
@@ -398,13 +403,23 @@ async function calculate() {
       horas_humanas: mo,
       custo_acabamento: acabamento,
       qtd: qtd,
+      cores: cores,
     }),
   });
 
   const data = await resp.json();
   const c = data.composicao;
+  const p = data.parametros;
 
-  document.getElementById('composicao').innerHTML = `
+  let extraInfo = '';
+  if (p.cores > 1) {
+    extraInfo = `
+    <div class="result-row" style="color:var(--yellow);font-size:0.82rem;margin-bottom:4px;">
+      <span class="label">⚡ ${p.cores} cores — inclui purga (${p.filamento_extra_purga_g}g / +${p.horas_impressao_com_purga - p.horas_impressao}h por peça)</span>
+    </div>`;
+  }
+
+  document.getElementById('composicao').innerHTML = extraInfo + `
     <div class="result-row"><span class="label">Filamento</span><span class="value">R$ ${c.filamento.toFixed(2)}</span></div>
     <div class="result-row"><span class="label">Energia</span><span class="value">R$ ${c.energia.toFixed(2)}</span></div>
     <div class="result-row"><span class="label">Máquina (deprec+manut)</span><span class="value">R$ ${c.maquina.toFixed(2)}</span></div>

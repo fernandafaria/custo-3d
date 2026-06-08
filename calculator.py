@@ -21,6 +21,9 @@ CONFIG_PADRAO = {
     "valor_hora_mo": 40,       # R$/hora
     "margem_pct": 50,          # %
     "buffer_falha_pct": 10,    # %
+    "purga_tempo_h": 0.033,    # 2 min por troca de cor
+    "purga_filamento_g": 3,    # ~3g de filamento por troca
+    "setup_cor_min": 5,        # 5 min extra de M.O. por cor adicional
 }
 
 
@@ -51,18 +54,42 @@ def calcular(peso_gramas: float,
              horas_humanas: float = 0.5,
              custo_acabamento: float = 0,
              qtd: int = 1,
+             cores: int = 1,
              config: dict | None = None) -> dict:
     """
     Calcula custo total e preço de venda de peça(s) impressa(s) em 3D.
+
+    Parâmetros:
+        peso_gramas: peso do modelo (por peça) em gramas
+        horas_impressao: tempo de impressão (por peça) em horas
+        preco_filamento_kg: preço do filamento por kg
+        horas_humanas: horas de trabalho humano (setup + pós, por lote)
+        custo_acabamento: custo extra de acabamento (por peça)
+        qtd: quantidade de peças no lote
+        cores: número de cores diferentes (afeta purga, filamento extra e setup)
 
     Retorna dict com composição detalhada de custos e preço sugerido.
     """
     c = {**CONFIG_PADRAO, **(config or {})}
 
-    fil = custo_filamento(peso_gramas, preco_filamento_kg, qtd)
-    ener = custo_energia(c["potencia_watts"], horas_impressao, c["tarifa_kwh"], qtd)
-    maq = custo_maquina(horas_impressao, c["valor_impressora"], c["vida_util_horas"], c["manutencao_hora"], qtd)
-    mo = custo_mao_de_obra(horas_humanas, c["valor_hora_mo"])
+    trocas = max(0, cores - 1)  # número de trocas de cor
+
+    # Tempo extra de impressão por troca de cor (purga)
+    horas_extra_por_peca = trocas * c["purga_tempo_h"]
+    horas_total_por_peca = horas_impressao + horas_extra_por_peca
+
+    # Filamento extra por troca de cor (purga/wipe tower)
+    filamento_extra_por_peca = trocas * c["purga_filamento_g"]
+    peso_total_por_peca = peso_gramas + filamento_extra_por_peca
+
+    # Mão de obra extra por cor adicional (configurar slicer, carregar filamento)
+    horas_humanas_extra = trocas * (c["setup_cor_min"] / 60)
+    horas_humanas_total = horas_humanas + horas_humanas_extra
+
+    fil = custo_filamento(peso_total_por_peca, preco_filamento_kg, qtd)
+    ener = custo_energia(c["potencia_watts"], horas_total_por_peca, c["tarifa_kwh"], qtd)
+    maq = custo_maquina(horas_total_por_peca, c["valor_impressora"], c["vida_util_horas"], c["manutencao_hora"], qtd)
+    mo = custo_mao_de_obra(horas_humanas_total, c["valor_hora_mo"])
     acab = custo_acabamento * qtd
 
     subtotal = fil + ener + maq + mo + acab
@@ -91,10 +118,15 @@ def calcular(peso_gramas: float,
         "parametros": {
             "peso_gramas": peso_gramas,
             "horas_impressao": horas_impressao,
+            "horas_impressao_com_purga": round(horas_total_por_peca, 2),
             "preco_filamento_kg": preco_filamento_kg,
+            "filamento_extra_purga_g": round(filamento_extra_por_peca, 2),
+            "peso_total_com_purga_g": round(peso_total_por_peca, 2),
             "horas_humanas": horas_humanas,
+            "horas_humanas_total": round(horas_humanas_total, 2),
             "custo_acabamento": custo_acabamento,
             "qtd": qtd,
+            "cores": cores,
             "margem_pct": c["margem_pct"],
             "buffer_falha_pct": c["buffer_falha_pct"],
         }

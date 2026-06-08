@@ -375,8 +375,12 @@
 function switchTab(name) {
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
-  document.querySelector(`.tab:nth-${name === 'calculator' ? '1' : '2'}-child`).classList.add('active');
+  document.querySelectorAll('.tab')[name === 'calculator' ? 0 : 1].classList.add('active');
   document.getElementById(`panel-${name}`).classList.add('active');
+  // Garante que campos de material estejam visíveis ao voltar
+  if (name === 'calculator') {
+    atualizarMateriais();
+  }
 }
 
 // Dynamic material price inputs per color

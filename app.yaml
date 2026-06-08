@@ -1,0 +1,23 @@
+name: custo-3d
+region: nyc
+services:
+  - name: web
+    github:
+      repo: fernandafaria/custo-3d
+      branch: main
+      deploy_on_push: true
+    dockerfile_path: Dockerfile
+    http_port: 8080
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 10
+      period_seconds: 30
+    routes:
+      - path: /
+    envs:
+      - key: DEEPSEEK_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: PLACEHOLDER

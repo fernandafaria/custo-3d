@@ -304,15 +304,8 @@
       </div>
       <div class="form-row">
         <div id="materiais-container" class="form-group" style="grid-column: 1 / -1;">
-          <label for="material-1">Material</label>
-          <select id="material-1" class="material-select" onchange="calculate()">
-            <option value="70">PETG Low Cost — R$70/kg</option>
-            <option value="90">PLA Standard — R$90/kg</option>
-            <option value="125">PLA Premium — R$125/kg</option>
-            <option value="110">PETG Standard — R$110/kg</option>
-            <option value="90">ABS — R$90/kg</option>
-            <option value="140">PLA Silk — R$140/kg</option>
-          </select>
+          <label for="material-1">Preço do filamento (R$/kg)</label>
+          <input type="number" id="material-1" class="material-select" value="70" min="0" step="1" oninput="calculate()">
         </div>
       </div>
       <div class="form-row">
@@ -386,16 +379,7 @@ function switchTab(name) {
   document.getElementById(`panel-${name}`).classList.add('active');
 }
 
-// Dynamic material selects per color
-const MATERIAL_OPTIONS = [
-  { value: "70", label: "PETG Low Cost — R$70/kg" },
-  { value: "90", label: "PLA Standard — R$90/kg" },
-  { value: "125", label: "PLA Premium — R$125/kg" },
-  { value: "110", label: "PETG Standard — R$110/kg" },
-  { value: "90", label: "ABS — R$90/kg" },
-  { value: "140", label: "PLA Silk — R$140/kg" },
-];
-
+// Dynamic material price inputs per color
 function atualizarMateriais() {
   const cores = parseInt(document.getElementById('cores').value) || 1;
   const container = document.getElementById('materiais-container');
@@ -409,12 +393,10 @@ function atualizarMateriais() {
 
   if (cores === 1) {
     container.innerHTML = `
-      <label for="material-1">Material</label>
-      <select id="material-1" class="material-select">
-        ${MATERIAL_OPTIONS.map(o => `<option value="${o.value}" ${o.value === (currentValues[0]||'70') ? 'selected' : ''}>${o.label}</option>`).join('')}
-      </select>`;
+      <label for="material-1">Preço do filamento (R$/kg)</label>
+      <input type="number" id="material-1" class="material-select" value="${currentValues[0] || '70'}" min="0" step="1" oninput="calculate()">`;
   } else {
-    container.innerHTML = '<label style="display:block;margin-bottom:6px;">Preço do filamento por cor</label>';
+    container.innerHTML = '<label style="display:block;margin-bottom:6px;">Preço do filamento por cor (R$/kg)</label>';
     container.style.display = 'grid';
     container.style.gridTemplateColumns = '1fr 1fr';
     container.style.gap = '8px';
@@ -423,9 +405,7 @@ function atualizarMateriais() {
       container.innerHTML += `
         <div class="form-group" style="margin-bottom:0;">
           <label for="material-${i}" style="font-size:0.75rem;">Cor ${i}</label>
-          <select id="material-${i}" class="material-select" onchange="calculate()">
-            ${MATERIAL_OPTIONS.map(o => `<option value="${o.value}" ${o.value === prevVal ? 'selected' : ''}>${o.label.split('—')[0].trim()}</option>`).join('')}
-          </select>
+          <input type="number" id="material-${i}" class="material-select" value="${prevVal}" min="0" step="1" oninput="calculate()">
         </div>`;
     }
   }
